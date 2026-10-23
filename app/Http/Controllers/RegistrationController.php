@@ -14,9 +14,11 @@ use Inertia\Response;
 
 class RegistrationController extends Controller
 {
-    public function show(Request $request, Event $event): Response
+    public function show(Request $request, string $slug): Response
     {
+        $event = Event::where('slug', $slug)->firstOrFail();
         $event->load('ticketTypes');
+        $event->append(['available_seats', 'is_full']);
         
         // Track referral click
         $referralCode = $request->query('ref');
@@ -34,8 +36,9 @@ class RegistrationController extends Controller
         ]);
     }
 
-    public function store(Request $request, Event $event)
+    public function store(Request $request, string $slug)
     {
+        $event = Event::where('slug', $slug)->firstOrFail();
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email',

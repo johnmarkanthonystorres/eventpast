@@ -23,6 +23,8 @@ class TicketType extends Model
         'is_active',
     ];
 
+    protected $appends = ['available_quantity', 'is_available'];
+
     protected $casts = [
         'price' => 'decimal:2',
         'sales_start_at' => 'datetime',
@@ -51,6 +53,11 @@ class TicketType extends Model
     public function getIsFreeAttribute(): bool
     {
         return $this->price == 0;
+    }
+
+    public function getIsAvailableAttribute(): bool
+    {
+        return $this->isAvailableForSale();
     }
 
     public function isAvailableForSale(): bool

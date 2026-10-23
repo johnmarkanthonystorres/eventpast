@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\CheckInController;
+use App\Http\Controllers\TicketTypeController;
 use App\Http\Controllers\ContentController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -36,10 +37,14 @@ Route::prefix('content')->group(function () {
     Route::get('/playbooks', [ContentController::class, 'playbooks'])->name('content.playbooks');
 });
 
-// Public event pages (with tenant middleware)
-Route::middleware(['tenant'])->group(function () {
-    Route::get('/events/{event:slug}', [RegistrationController::class, 'show'])->name('public.events.show');
-    Route::post('/events/{event:slug}/register', [RegistrationController::class, 'store'])->name('public.events.register');
+// Public event pages (tenant middleware disabled for localhost development)
+// TODO: Re-enable tenant middleware for production with proper subdomain setup
+Route::group([], function () {
+    // Slug must not be "create" or purely numeric, otherwise it would swallow the
+    // admin routes (/events/create and /events/{id}) and return 404.
+    $publicSlug = '(?!create$)(?!\d+$)[A-Za-z0-9_-]+';
+    Route::get('/events/{slug}', [RegistrationController::class, 'show'])->where('slug', $publicSlug)->name('public.events.show');
+    Route::post('/events/{slug}/register', [RegistrationController::class, 'store'])->where('slug', $publicSlug)->name('public.events.register');
     Route::get('/registrations/{registration}/confirmation', [RegistrationController::class, 'confirmation'])->name('registrations.confirmation');
     Route::get('/registrations/{registration}/qrcode', [RegistrationController::class, 'qrcode'])->name('registrations.qrcode');
     
@@ -57,11 +62,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/events', [EventController::class, 'index'])->name('events.index');
     Route::get('/events/create', [EventController::class, 'create'])->name('events.create');
     Route::post('/events', [EventController::class, 'store'])->name('events.store');
-    Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
-    Route::get('/events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');
-    Route::put('/events/{event}', [EventController::class, 'update'])->name('events.update');
-    Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+    Route::get('/events/{event}', [EventController::class, 'show'])->whereNumber('event')->name('events.show');
+    Route::get('/events/{event}/edit', [EventController::class, 'edit'])->whereNumber('event')->name('events.edit');
+    Route::put('/events/{event}', [EventController::class, 'update'])->whereNumber('event')->name('events.update');
+    Route::delete('/events/{event}', [EventController::class, 'destroy'])->whereNumber('event')->name('events.destroy');
     
+    // Ticket types
+    Route::post('/events/{event}/ticket-types', [TicketTypeController::class, 'store'])->whereNumber('event')->name('events.ticket-types.store');
+    Route::delete('/events/{event}/ticket-types/{ticketType}', [TicketTypeController::class, 'destroy'])->whereNumber(['event','ticketType'])->name('events.ticket-types.destroy');
+
     // Check-in
     Route::get('/events/{event}/check-in', [CheckInController::class, 'index'])->name('events.checkin');
     Route::post('/check-in/scan', [CheckInController::class, 'scan'])->name('checkin.scan');

@@ -99,6 +99,6 @@ class Event extends Model
 
     public function getRegistrationUrl(): string
     {
-        return route('events.show', ['tenant' => $this->tenant->subdomain, 'slug' => $this->slug]);
+        return route('public.events.show', ['slug' => $this->slug]);
     }
 }

@@ -236,9 +236,30 @@
                             </div>
                         </div>
                         <p v-else class="text-sm text-gray-500">No ticket types created</p>
-                        <button class="mt-4 w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            Add Ticket Type
+                        <button type="button" @click="showTicketForm = !showTicketForm" class="mt-4 w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            {{ showTicketForm ? 'Cancel' : 'Add Ticket Type' }}
                         </button>
+
+                        <form v-if="showTicketForm" @submit.prevent="addTicketType" class="mt-4 space-y-3">
+                            <div>
+                                <input v-model="ticketForm.name" type="text" placeholder="Name (e.g. General Admission)" class="w-full rounded-md border-gray-300 text-sm" required />
+                                <p v-if="ticketForm.errors.name" class="text-xs text-red-600 mt-1">{{ ticketForm.errors.name }}</p>
+                            </div>
+                            <textarea v-model="ticketForm.description" rows="2" placeholder="Description (optional)" class="w-full rounded-md border-gray-300 text-sm"></textarea>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <input v-model="ticketForm.price" type="number" min="0" step="0.01" placeholder="Price (0 = free)" class="w-full rounded-md border-gray-300 text-sm" required />
+                                    <p v-if="ticketForm.errors.price" class="text-xs text-red-600 mt-1">{{ ticketForm.errors.price }}</p>
+                                </div>
+                                <div>
+                                    <input v-model="ticketForm.quantity" type="number" min="1" placeholder="Quantity (blank = unlimited)" class="w-full rounded-md border-gray-300 text-sm" />
+                                    <p v-if="ticketForm.errors.quantity" class="text-xs text-red-600 mt-1">{{ ticketForm.errors.quantity }}</p>
+                                </div>
+                            </div>
+                            <button type="submit" :disabled="ticketForm.processing" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                                Save Ticket Type
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -248,7 +269,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 const props = defineProps({
@@ -256,6 +277,24 @@ const props = defineProps({
 });
 
 const copied = ref(false);
+
+const showTicketForm = ref(false);
+const ticketForm = useForm({
+    name: '',
+    description: '',
+    price: 0,
+    quantity: null,
+});
+
+const addTicketType = () => {
+    ticketForm.post(route('events.ticket-types.store', props.event.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            ticketForm.reset();
+            showTicketForm.value = false;
+        },
+    });
+};
 
 const confirmedCount = computed(() => {
     return props.event.registrations.filter(r => r.status === 'confirmed').length;
