@@ -32,7 +32,13 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user()?->load('tenant'),
+            ],
+            // AppLayout reads page.props.flash; without this, every
+            // ->with('success'|'error') message is silently dropped.
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
             ],
             'currency' => config('services.stripe.currency'),
         ];

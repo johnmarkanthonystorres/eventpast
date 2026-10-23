@@ -90,6 +90,11 @@ class Registration extends Model
             return false;
         }
 
+        // A paid ticket cannot be confirmed without payment.
+        if (!$this->ticketType->is_free) {
+            return false;
+        }
+
         $this->update(['status' => 'confirmed']);
         
         // TODO: Send promotion email notification

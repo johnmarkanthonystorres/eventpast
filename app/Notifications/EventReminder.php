@@ -30,7 +30,7 @@ class EventReminder extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $event = $this->registration->event;
-        $ticketUrl = route('registrations.confirmation', $this->registration->id);
+        $ticketUrl = route('registrations.confirmation', $this->registration);
 
         $when = $event->start_at->format('l, F j, Y \a\t g:i A') . ' (' . $event->timezone . ')';
         $where = $event->venue_name ?: ($event->online_link ? 'Online event' : 'Location to be announced');

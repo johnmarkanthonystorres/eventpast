@@ -42,6 +42,7 @@ return [
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
         'connect_webhook_secret' => env('STRIPE_CONNECT_WEBHOOK_SECRET'),
+        'api_version' => env('STRIPE_API_VERSION', '2024-06-20'),
         'currency' => strtolower(env('STRIPE_CURRENCY', 'php')),
         // Minutes a buyer has to finish paying before the seat is released.
         // Stripe requires Checkout sessions to last at least 30 minutes.

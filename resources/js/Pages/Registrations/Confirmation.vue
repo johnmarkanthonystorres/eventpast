@@ -3,22 +3,24 @@
         <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="bg-white shadow rounded-lg p-8 text-center">
                 <!-- Success Icon -->
-                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                <div
+                    class="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4"
+                    :class="isConfirmed ? 'bg-green-100' : isCancelled ? 'bg-red-100' : 'bg-amber-100'"
+                >
+                    <svg
+                        class="h-6 w-6"
+                        :class="isConfirmed ? 'text-green-600' : isCancelled ? 'text-red-600' : 'text-amber-600'"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                        <path v-if="isConfirmed" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        <path v-else-if="isCancelled" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
                 
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                    {{ registration.status === 'confirmed' ? 'Registration Confirmed!' : 'Added to Waitlist' }}
-                </h1>
-                
-                <p class="text-lg text-gray-600 mb-8">
-                    {{ registration.status === 'confirmed' 
-                        ? 'You\'re all set! Check your email for confirmation details.' 
-                        : 'We\'ll notify you if a spot opens up.' 
-                    }}
-                </p>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ headline }}</h1>
+
+                <p class="text-lg text-gray-600 mb-8">{{ message }}</p>
                 
                 <!-- Event Details -->
                 <div class="bg-gray-50 rounded-lg p-6 mb-8 text-left">
@@ -48,7 +50,7 @@
                 </div>
                 
                 <!-- QR Code (only for confirmed registrations) -->
-                <div v-if="registration.status === 'confirmed'" class="mb-8">
+                <div v-if="isConfirmed" class="mb-8">
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Your Ticket</h2>
                     <div class="bg-white border-2 border-gray-200 rounded-lg p-6 inline-block">
                         <img 
@@ -62,7 +64,7 @@
                 </div>
                 
                 <!-- Referral Link -->
-                <div v-if="registration.referral" class="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-lg p-6 mb-8">
+                <div v-if="isConfirmed && registration.referral" class="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-lg p-6 mb-8">
                     <div class="text-center mb-4">
                         <h3 class="text-xl font-bold text-gray-900 mb-2">🎉 Invite Your Friends</h3>
                         <p class="text-sm text-gray-700">Share this event and earn rewards when friends register!</p>
@@ -156,7 +158,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { router } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 
 const props = defineProps({
@@ -165,13 +168,52 @@ const props = defineProps({
 
 const copied = ref(false);
 
+// A checked-in attendee is still a confirmed one.
+const isConfirmed = computed(() => ['confirmed', 'checked_in'].includes(props.registration.status));
+const isPending = computed(() => props.registration.status === 'pending_payment');
+const isCancelled = computed(() => props.registration.status === 'cancelled');
+
+const headline = computed(() => {
+    if (isConfirmed.value) return 'Registration Confirmed!';
+    if (isPending.value) return 'Confirming your payment…';
+    if (isCancelled.value) return 'Registration not completed';
+    return 'Added to Waitlist';
+});
+
+const message = computed(() => {
+    if (isConfirmed.value) return 'You\'re all set! Check your email for confirmation details.';
+    if (isPending.value) return 'This usually takes a few seconds. Your ticket appears here as soon as the payment clears.';
+    if (isCancelled.value) return 'Your payment wasn\'t completed, so this spot was released. You can register again from the event page.';
+    return 'We\'ll notify you if a spot opens up.';
+});
+
+// After paying, Stripe's webhook confirms the registration a moment later.
+// Poll briefly so the buyer sees their ticket without refreshing.
+let timer = null;
+let tries = 0;
+
+onMounted(() => {
+    if (!isPending.value) return;
+
+    timer = setInterval(() => {
+        tries += 1;
+        if (!isPending.value || tries > 20) {
+            clearInterval(timer);
+            return;
+        }
+        router.reload({ only: ['registration'], preserveScroll: true });
+    }, 3000);
+});
+
+onBeforeUnmount(() => clearInterval(timer));
+
 const qrcodeUrl = computed(() => {
-    return `/registrations/${props.registration.id}/qrcode`;
+    return route('registrations.qrcode', props.registration.qr_token);
 });
 
 const referralUrl = computed(() => {
     if (!props.registration.referral) return '';
-    return `${window.location.origin}/events/${props.registration.event.slug}?ref=${props.registration.referral.code}`;
+    return `${window.location.origin}/e/${props.registration.event.slug}?ref=${props.registration.referral.code}`;
 });
 
 const copyReferralLink = () => {

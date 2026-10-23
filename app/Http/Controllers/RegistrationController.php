@@ -7,7 +7,9 @@ use App\Models\Attendee;
 use App\Models\Registration;
 use App\Models\Referral;
 use App\Notifications\RegistrationConfirmed;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -34,7 +36,7 @@ class RegistrationController extends Controller
         ]);
     }
 
-    public function store(Request $request, Event $event)
+    public function store(Request $request, Event $event, PaymentService $payments)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -55,9 +57,19 @@ class RegistrationController extends Controller
         if (!$ticketType->isAvailableForSale()) {
             return back()->with('error', 'This ticket type is not available');
         }
+
+        if (!$ticketType->is_free && !$event->tenant->canAcceptPayments()) {
+            return back()->with('error', 'Paid tickets are not available for this event right now.');
+        }
+
+        $order = null;
         
         try {
             DB::beginTransaction();
+
+            // Serialize registrations per event so two buyers cannot both
+            // take the last seat.
+            $event = Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
             
             // Find or create attendee
             $attendee = Attendee::firstOrCreate(
@@ -73,17 +85,22 @@ class RegistrationController extends Controller
             );
             
             // Determine registration status
-            $status = 'confirmed';
+            // Free tickets confirm immediately; paid ones hold a seat until
+            // Stripe confirms payment. A full event waitlists either way.
+            $status = $ticketType->is_free ? 'confirmed' : 'pending_payment';
             if ($event->is_full) {
                 $status = 'waitlisted';
             }
             
-            // Track referral source
+            // Track referral source. For paid tickets the conversion only
+            // counts once payment succeeds (see PaymentService).
             $source = null;
             if (!empty($validated['referral_code'])) {
                 $referral = Referral::where('code', $validated['referral_code'])->first();
                 if ($referral) {
-                    $referral->incrementConversions();
+                    if ($status !== 'pending_payment') {
+                        $referral->incrementConversions();
+                    }
                     $source = 'referral:' . $validated['referral_code'];
                 }
             }
@@ -99,6 +116,10 @@ class RegistrationController extends Controller
             
             // Increment ticket sold count
             $ticketType->increment('quantity_sold');
+
+            if ($status === 'pending_payment') {
+                $order = $payments->createOrder($registration, $ticketType, $event->tenant);
+            }
             
             // Create referral link for this registration
             Referral::create([
@@ -106,11 +127,15 @@ class RegistrationController extends Controller
             ]);
             
             DB::commit();
+
+            if ($status === 'pending_payment') {
+                return $this->startPayment($payments, $registration, $order);
+            }
             
             // Send confirmation email
             $attendee->notify(new RegistrationConfirmed($registration));
             
-            return redirect()->route('registrations.confirmation', $registration->id)
+            return redirect()->route('registrations.confirmation', $registration)
                 ->with('success', $status === 'confirmed' 
                     ? 'Registration confirmed! Check your email for details.' 
                     : 'You\'ve been added to the waitlist. We\'ll notify you if a spot opens up.');
@@ -128,6 +153,24 @@ class RegistrationController extends Controller
         return Inertia::render('Registrations/Confirmation', [
             'registration' => $registration,
         ]);
+    }
+
+    /**
+     * Send the buyer to Stripe Checkout. If Stripe can't be reached, give the
+     * seat straight back rather than leaving it held for nothing.
+     */
+    private function startPayment(PaymentService $payments, Registration $registration, $order)
+    {
+        try {
+            $url = $payments->createCheckout($registration);
+        } catch (\Throwable $e) {
+            Log::error('Could not start Stripe checkout: '.$e->getMessage(), ['registration_id' => $registration->id]);
+            $payments->release($order);
+
+            return back()->with('error', 'We couldn\'t start the payment. Please try again in a moment.');
+        }
+
+        return Inertia::location($url);
     }
 
     public function qrcode(Registration $registration)

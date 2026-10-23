@@ -18,6 +18,7 @@ class Order extends Model
         'platform_fee',
         'currency',
         'stripe_payment_intent_id',
+        'stripe_checkout_session_id',
         'status',
     ];
 

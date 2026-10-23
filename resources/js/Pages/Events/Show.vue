@@ -222,7 +222,7 @@ const checkedInCount = computed(() => {
 });
 
 const publicUrl = computed(() => {
-    return `${window.location.origin}/events/${props.event.slug}`;
+    return `${window.location.origin}/e/${props.event.slug}`;
 });
 
 const formatDate = (dateString) => {

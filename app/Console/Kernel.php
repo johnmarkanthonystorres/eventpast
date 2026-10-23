@@ -16,6 +16,11 @@ class Kernel extends ConsoleKernel
             ->everyFifteenMinutes()
             ->withoutOverlapping()
             ->onOneServer();
+
+        $schedule->command('payments:release-stale')
+            ->everyTenMinutes()
+            ->withoutOverlapping()
+            ->onOneServer();
     }
 
     /**

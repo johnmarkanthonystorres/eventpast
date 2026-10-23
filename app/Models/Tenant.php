@@ -22,6 +22,11 @@ class Tenant extends Model
         'trial_ends_at',
     ];
 
+    /** Never serialize the payout account id into Inertia/JSON responses. */
+    protected $hidden = [
+        'stripe_account_id',
+    ];
+
     protected $casts = [
         'brand_settings' => 'array',
         'is_active' => 'boolean',

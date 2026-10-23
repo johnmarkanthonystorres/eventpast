@@ -6,6 +6,7 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\ContentController;
 use App\Http\Controllers\TicketTypeController;
+use App\Http\Controllers\PaymentSettingsController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -39,10 +40,12 @@ Route::prefix('content')->group(function () {
 
 // Public event pages (with tenant middleware)
 Route::middleware(['tenant'])->group(function () {
-    Route::get('/events/{event:slug}', [RegistrationController::class, 'show'])->name('public.events.show');
-    Route::post('/events/{event:slug}/register', [RegistrationController::class, 'store'])->name('public.events.register');
-    Route::get('/registrations/{registration}/confirmation', [RegistrationController::class, 'confirmation'])->name('registrations.confirmation');
-    Route::get('/registrations/{registration}/qrcode', [RegistrationController::class, 'qrcode'])->name('registrations.qrcode');
+    // Public pages live under /e/ because /events/{x} belongs to the organizer
+    // dashboard; sharing one URI made Laravel drop the public page entirely.
+    Route::get('/e/{event:slug}', [RegistrationController::class, 'show'])->name('public.events.show');
+    Route::post('/e/{event:slug}/register', [RegistrationController::class, 'store'])->name('public.events.register');
+    Route::get('/registrations/{registration:qr_token}/confirmation', [RegistrationController::class, 'confirmation'])->name('registrations.confirmation');
+    Route::get('/registrations/{registration:qr_token}/qrcode', [RegistrationController::class, 'qrcode'])->name('registrations.qrcode');
 });
 
 // Authenticated routes
@@ -59,6 +62,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/events/{event}', [EventController::class, 'update'])->name('events.update');
     Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
     
+    // Payment settings (Stripe Connect)
+    Route::get('/settings/payments', [PaymentSettingsController::class, 'show'])->name('settings.payments');
+    Route::get('/settings/payments/connect', [PaymentSettingsController::class, 'connect'])->name('settings.payments.connect');
+    Route::post('/settings/payments/connect', [PaymentSettingsController::class, 'connect']);
+    Route::get('/settings/payments/return', [PaymentSettingsController::class, 'return'])->name('settings.payments.return');
+
     // Tickets
     Route::get('/events/{event}/tickets', [TicketTypeController::class, 'index'])->name('events.tickets.index');
     Route::post('/events/{event}/tickets', [TicketTypeController::class, 'store'])->name('events.tickets.store');

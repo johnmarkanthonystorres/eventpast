@@ -38,7 +38,7 @@ class RegistrationConfirmed extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $event = $this->registration->event;
-        $confirmationUrl = route('registrations.confirmation', $this->registration->id);
+        $confirmationUrl = route('registrations.confirmation', $this->registration);
         
         return (new MailMessage)
             ->subject('Registration Confirmed: ' . $event->title)

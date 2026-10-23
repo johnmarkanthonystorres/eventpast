@@ -80,11 +80,20 @@ class Event extends Model
         return $this->registrations()->where('status', 'waitlisted');
     }
 
+    /**
+     * Registrations that occupy a seat: confirmed, already checked in, and
+     * paid-ticket buyers mid-checkout (held until they pay or it expires).
+     */
+    public function seatHoldingRegistrations(): HasMany
+    {
+        return $this->registrations()->whereIn('status', ['confirmed', 'checked_in', 'pending_payment']);
+    }
+
     public function getAvailableSeatsAttribute(): int
     {
         $capacity = $this->capacity ?? $this->tenant->participant_limit;
-        $confirmed = $this->confirmedRegistrations()->count();
-        return max(0, $capacity - $confirmed);
+        $held = $this->seatHoldingRegistrations()->count();
+        return max(0, $capacity - $held);
     }
 
     public function getIsFullAttribute(): bool
@@ -114,6 +123,6 @@ class Event extends Model
 
     public function getRegistrationUrl(): string
     {
-        return route('events.show', ['tenant' => $this->tenant->subdomain, 'slug' => $this->slug]);
+        return route('public.events.show', $this);
     }
 }

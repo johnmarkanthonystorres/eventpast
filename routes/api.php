@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StrapiWebhookController;
+use App\Http\Controllers\StripeWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,6 +25,12 @@ Route::prefix('webhooks/strapi')->group(function () {
     Route::post('/content-published', [StrapiWebhookController::class, 'handleContentPublished']);
     Route::post('/content-unpublished', [StrapiWebhookController::class, 'handleContentUnpublished']);
 });
+
+// Stripe webhooks (no auth - secured by signature). Not throttled: Stripe
+// retries and bursts, and a 429 would make it back off our real events.
+Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle'])
+    ->withoutMiddleware('throttle:api')
+    ->name('webhooks.stripe');
 
 // Admin routes (requires authentication)
 Route::middleware(['auth:sanctum'])->group(function () {
