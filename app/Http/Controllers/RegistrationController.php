@@ -140,4 +140,21 @@ class RegistrationController extends Controller
         return response($qrCode)
             ->header('Content-Type', 'image/svg+xml');
     }
+
+    public function myTicket(Registration $registration): Response
+    {
+        $registration->load(['event', 'attendee', 'ticketType', 'checkIn']);
+        
+        // Generate QR code as base64 PNG
+        $qrCode = base64_encode(\QrCode::format('png')
+            ->size(300)
+            ->margin(2)
+            ->generate($registration->qr_token));
+        
+        return Inertia::render('Registrations/MyTicket', [
+            'registration' => $registration,
+            'event' => $registration->event,
+            'qrCode' => $qrCode,
+        ]);
+    }
 }

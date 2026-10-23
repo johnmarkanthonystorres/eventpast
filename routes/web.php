@@ -42,6 +42,10 @@ Route::middleware(['tenant'])->group(function () {
     Route::post('/events/{event:slug}/register', [RegistrationController::class, 'store'])->name('public.events.register');
     Route::get('/registrations/{registration}/confirmation', [RegistrationController::class, 'confirmation'])->name('registrations.confirmation');
     Route::get('/registrations/{registration}/qrcode', [RegistrationController::class, 'qrcode'])->name('registrations.qrcode');
+    
+    // Participant ticket view (public - no auth required)
+    Route::get('/my-ticket/{registration}', [RegistrationController::class, 'myTicket'])->name('registrations.ticket');
+    Route::get('/registrations/{registration}/download', [RegistrationController::class, 'downloadPdf'])->name('registrations.download');
 });
 
 // Authenticated routes

@@ -18,10 +18,12 @@ class Attendee extends Model
         'email',
         'phone',
         'marketing_consent',
+        'notifications_sent',
     ];
 
     protected $casts = [
         'marketing_consent' => 'boolean',
+        'notifications_sent' => 'array',
     ];
 
     public function tenant(): BelongsTo

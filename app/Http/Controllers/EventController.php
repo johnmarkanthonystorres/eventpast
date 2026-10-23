@@ -71,7 +71,7 @@ class EventController extends Controller
     {
         $this->authorize('view', $event);
         
-        $event->load(['ticketTypes', 'registrations.attendee']);
+        $event->load(['ticketTypes', 'registrations.attendee', 'registrations.checkIn', 'registrations.ticketType']);
         
         return Inertia::render('Events/Show', [
             'event' => $event,

@@ -88,6 +88,48 @@
                         </dl>
                     </div>
 
+                    <!-- Check-in Overview (Admin) -->
+                    <div class="bg-white shadow rounded-lg p-6 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-gray-900">Check-in Overview</h2>
+                            <Link
+                                v-if="event.status === 'published'"
+                                :href="route('events.checkin', event.id)"
+                                class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+                            >
+                                Open Scanner
+                            </Link>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-4 mb-4">
+                            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                                <p class="text-3xl font-bold text-blue-600">{{ checkedInCount }}</p>
+                                <p class="text-xs text-gray-600 mt-1">Checked In</p>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4 text-center">
+                                <p class="text-3xl font-bold text-green-600">{{ confirmedCount - checkedInCount }}</p>
+                                <p class="text-xs text-gray-600 mt-1">Pending</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-3xl font-bold text-gray-600">{{ checkInRate }}%</p>
+                                <p class="text-xs text-gray-600 mt-1">Check-in Rate</p>
+                            </div>
+                        </div>
+
+                        <!-- Recent Check-ins -->
+                        <div v-if="recentCheckIns.length > 0" class="border-t pt-4">
+                            <h3 class="text-sm font-medium text-gray-700 mb-3">Recent Check-ins</h3>
+                            <div class="space-y-2">
+                                <div v-for="checkIn in recentCheckIns.slice(0, 5)" :key="checkIn.id" 
+                                     class="flex justify-between items-center text-sm">
+                                    <span class="text-gray-900">{{ checkIn.registration.attendee.name }}</span>
+                                    <span class="text-gray-500">{{ formatTimeAgo(checkIn.checked_in_at) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p v-else class="text-sm text-gray-500 text-center py-4 border-t mt-4">No check-ins yet</p>
+                    </div>
+
                     <!-- Registrations -->
                     <div class="bg-white shadow rounded-lg p-6">
                         <h2 class="text-lg font-semibold text-gray-900 mb-4">Registrations</h2>
@@ -99,6 +141,7 @@
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check-in</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Registered</th>
                                     </tr>
@@ -108,6 +151,15 @@
                                         <td class="px-4 py-3 text-sm text-gray-900">{{ registration.attendee.name }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600">{{ registration.attendee.email }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600">{{ registration.ticket_type?.name || 'N/A' }}</td>
+                                        <td class="px-4 py-3">
+                                            <span v-if="registration.check_in" class="text-green-600 text-sm flex items-center">
+                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Checked In
+                                            </span>
+                                            <span v-else class="text-gray-400 text-sm">Not yet</span>
+                                        </td>
                                         <td class="px-4 py-3">
                                             <span
                                                 :class="{
@@ -214,7 +266,18 @@ const waitlistedCount = computed(() => {
 });
 
 const checkedInCount = computed(() => {
-    return props.event.registrations.filter(r => r.status === 'checked_in').length;
+    return props.event.registrations.filter(r => r.check_in !== null).length;
+});
+
+const checkInRate = computed(() => {
+    if (confirmedCount.value === 0) return 0;
+    return Math.round((checkedInCount.value / confirmedCount.value) * 100);
+});
+
+const recentCheckIns = computed(() => {
+    return props.event.registrations
+        .filter(r => r.check_in !== null)
+        .sort((a, b) => new Date(b.check_in.checked_in_at) - new Date(a.check_in.checked_in_at));
 });
 
 const publicUrl = computed(() => {
@@ -240,6 +303,17 @@ const formatShortDate = (dateString) => {
         day: 'numeric',
         year: 'numeric',
     });
+};
+
+const formatTimeAgo = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
 };
 
 const copyPublicLink = () => {

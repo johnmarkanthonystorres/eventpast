@@ -12,7 +12,21 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Send event reminders at strategic times
+        
+        // Check for 7-day reminders every day at 9 AM
+        $schedule->command('reminders:send --type=7day')
+            ->dailyAt('09:00')
+            ->timezone('UTC');
+        
+        // Check for 1-day reminders every day at 9 AM
+        $schedule->command('reminders:send --type=1day')
+            ->dailyAt('09:00')
+            ->timezone('UTC');
+        
+        // Check for 2-hour reminders every hour (to catch events starting at different times)
+        $schedule->command('reminders:send --type=2hour')
+            ->hourly();
     }
 
     /**

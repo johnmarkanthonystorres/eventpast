@@ -16,20 +16,17 @@ class CheckInController extends Controller
     {
         $this->authorize('view', $event);
         
-        $checkIns = $event->registrations()
-            ->with(['attendee', 'checkIn.scanner'])
-            ->where('status', 'confirmed')
-            ->latest()
-            ->paginate(50);
+        $confirmedCount = $event->registrations()->where('status', 'confirmed')->count();
+        $checkedInCount = $event->registrations()->whereHas('checkIn')->count();
         
         $stats = [
-            'total' => $event->registrations()->where('status', 'confirmed')->count(),
-            'checked_in' => $event->registrations()->whereHas('checkIn')->count(),
+            'checkedIn' => $checkedInCount,
+            'pending' => $confirmedCount - $checkedInCount,
+            'checkInRate' => $confirmedCount > 0 ? round(($checkedInCount / $confirmedCount) * 100) : 0,
         ];
         
-        return Inertia::render('Events/CheckIn', [
+        return Inertia::render('CheckIn/Scanner', [
             'event' => $event,
-            'registrations' => $checkIns,
             'stats' => $stats,
         ]);
     }
@@ -47,8 +44,8 @@ class CheckInController extends Controller
         if (!$registration) {
             return response()->json([
                 'success' => false,
-                'result' => 'invalid',
-                'message' => 'QR code not found',
+                'error' => 'Invalid QR Code',
+                'message' => 'This QR code was not found in our system.',
             ], 404);
         }
         
@@ -56,59 +53,62 @@ class CheckInController extends Controller
         if (!$request->user()->canManageEvent($registration->event)) {
             return response()->json([
                 'success' => false,
-                'result' => 'unauthorized',
-                'message' => 'You cannot check in attendees for this event',
+                'error' => 'Unauthorized',
+                'message' => 'You cannot check in attendees for this event.',
             ], 403);
         }
         
         // Check if already checked in
         if ($registration->isCheckedIn()) {
+            $checkIn = $registration->checkIn;
+            $timeAgo = $checkIn->created_at->diffForHumans();
+            
             return response()->json([
                 'success' => false,
-                'result' => 'duplicate',
-                'message' => 'Already checked in',
-                'registration' => $registration,
-                'check_in' => $registration->checkIn,
-            ]);
+                'error' => 'Already Checked In',
+                'message' => "Already checked in {$timeAgo}",
+                'attendee_name' => $registration->attendee->name,
+                'attendee_email' => $registration->attendee->email,
+            ], 400);
         }
         
         // Validate registration status
         if ($registration->status === 'cancelled') {
             return response()->json([
                 'success' => false,
-                'result' => 'cancelled',
-                'message' => 'Registration cancelled',
-                'registration' => $registration,
-            ]);
+                'error' => 'Registration Cancelled',
+                'message' => 'This registration has been cancelled.',
+                'attendee_name' => $registration->attendee->name,
+            ], 400);
         }
         
         if ($registration->status === 'waitlisted') {
             return response()->json([
                 'success' => false,
-                'result' => 'waitlisted',
-                'message' => 'Still on waitlist',
-                'registration' => $registration,
-            ]);
+                'error' => 'On Waitlist',
+                'message' => 'This attendee is still on the waitlist.',
+                'attendee_name' => $registration->attendee->name,
+            ], 400);
         }
         
         if ($registration->status !== 'confirmed') {
             return response()->json([
                 'success' => false,
-                'result' => 'invalid_status',
-                'message' => 'Invalid registration status',
-                'registration' => $registration,
-            ]);
+                'error' => 'Invalid Status',
+                'message' => 'Registration status: ' . $registration->status,
+                'attendee_name' => $registration->attendee->name,
+            ], 400);
         }
         
         // Check if ticket is paid (if applicable)
-        if (!$registration->ticketType->is_free && $registration->order) {
-            if ($registration->order->status !== 'completed') {
+        if ($registration->ticketType && !$registration->ticketType->is_free) {
+            if ($registration->order && $registration->order->status !== 'completed') {
                 return response()->json([
                     'success' => false,
-                    'result' => 'payment_pending',
-                    'message' => 'Payment not completed',
-                    'registration' => $registration,
-                ]);
+                    'error' => 'Payment Pending',
+                    'message' => 'Payment has not been completed for this ticket.',
+                    'attendee_name' => $registration->attendee->name,
+                ], 400);
             }
         }
         
@@ -118,20 +118,18 @@ class CheckInController extends Controller
             // Create check-in record
             $checkIn = CheckIn::create([
                 'registration_id' => $registration->id,
-                'scanned_by' => $request->user()->id,
-                'scanned_at' => now(),
+                'checked_in_by' => $request->user()->name,
+                'checked_in_at' => now(),
             ]);
-            
-            // Update registration status
-            $registration->update(['status' => 'checked_in']);
             
             DB::commit();
             
             return response()->json([
                 'success' => true,
-                'result' => 'valid',
-                'message' => 'Check-in successful',
-                'registration' => $registration->load('checkIn.scanner'),
+                'message' => 'Welcome to ' . $registration->event->title,
+                'attendee_name' => $registration->attendee->name,
+                'attendee_email' => $registration->attendee->email,
+                'ticket_type' => $registration->ticketType?->name,
             ]);
             
         } catch (\Exception $e) {
@@ -139,8 +137,8 @@ class CheckInController extends Controller
             
             return response()->json([
                 'success' => false,
-                'result' => 'error',
-                'message' => 'Check-in failed. Please try again.',
+                'error' => 'Check-in Failed',
+                'message' => 'An error occurred. Please try again.',
             ], 500);
         }
     }
