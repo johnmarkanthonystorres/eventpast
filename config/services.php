@@ -38,4 +38,14 @@ return [
         'cache_duration' => env('STRAPI_CACHE_DURATION', 900), // 15 minutes
     ],
 
+    'stripe' => [
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'connect_webhook_secret' => env('STRIPE_CONNECT_WEBHOOK_SECRET'),
+        'currency' => strtolower(env('STRIPE_CURRENCY', 'php')),
+        // Minutes a buyer has to finish paying before the seat is released.
+        // Stripe requires Checkout sessions to last at least 30 minutes.
+        'checkout_minutes' => max(30, (int) env('STRIPE_CHECKOUT_MINUTES', 30)),
+    ],
+
 ];

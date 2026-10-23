@@ -16,6 +16,7 @@ class Tenant extends Model
         'subdomain',
         'plan',
         'stripe_account_id',
+        'stripe_charges_enabled',
         'brand_settings',
         'is_active',
         'trial_ends_at',
@@ -24,6 +25,7 @@ class Tenant extends Model
     protected $casts = [
         'brand_settings' => 'array',
         'is_active' => 'boolean',
+        'stripe_charges_enabled' => 'boolean',
         'trial_ends_at' => 'datetime',
     ];
 
@@ -40,6 +42,15 @@ class Tenant extends Model
     public function attendees(): HasMany
     {
         return $this->hasMany(Attendee::class);
+    }
+
+    /**
+     * Whether this organizer can receive ticket payments: a connected Stripe
+     * account that Stripe has enabled for charges.
+     */
+    public function canAcceptPayments(): bool
+    {
+        return ! empty($this->stripe_account_id) && $this->stripe_charges_enabled;
     }
 
     public function getParticipantLimitAttribute(): int

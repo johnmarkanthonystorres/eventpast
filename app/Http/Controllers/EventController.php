@@ -62,6 +62,13 @@ class EventController extends Controller
             'capacity' => $validated['capacity'] ?? null,
             'status' => 'draft',
         ]);
+
+        // Every event starts with one free, unlimited ticket so it can take
+        // registrations straight away. Organizers can edit or add more.
+        $event->ticketTypes()->create([
+            'name' => 'General Admission',
+            'price' => 0,
+        ]);
         
         return redirect()->route('events.show', $event->id)
             ->with('success', 'Event created successfully');

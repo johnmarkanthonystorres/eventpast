@@ -179,14 +179,17 @@
                         <div v-if="event.ticket_types.length > 0" class="space-y-3">
                             <div v-for="ticket in event.ticket_types" :key="ticket.id" class="border-l-4 border-blue-500 pl-3">
                                 <p class="text-sm font-medium text-gray-900">{{ ticket.name }}</p>
-                                <p class="text-xs text-gray-600">{{ ticket.price > 0 ? `$${ticket.price}` : 'Free' }}</p>
+                                <p class="text-xs text-gray-600">{{ formatMoney(ticket.price) }}</p>
                                 <p class="text-xs text-gray-500">{{ ticket.quantity_sold || 0 }} sold</p>
                             </div>
                         </div>
                         <p v-else class="text-sm text-gray-500">No ticket types created</p>
-                        <button class="mt-4 w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            Add Ticket Type
-                        </button>
+                        <Link
+                            :href="route('events.tickets.index', event.id)"
+                            class="mt-4 block w-full px-4 py-2 border border-gray-300 rounded-md text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                            Manage tickets
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -198,6 +201,7 @@
 import { ref, computed } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { formatMoney } from '@/lib/money';
 
 const props = defineProps({
     event: Object,

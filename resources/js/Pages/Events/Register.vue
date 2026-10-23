@@ -118,7 +118,7 @@
                                     :value="ticket.id"
                                     :disabled="!ticket.is_available"
                                 >
-                                    {{ ticket.name }} - {{ ticket.price > 0 ? `$${ticket.price}` : 'Free' }}
+                                    {{ ticket.name }} - {{ formatMoney(ticket.price) }}
                                     {{ ticket.available_quantity !== null ? `(${ticket.available_quantity} available)` : '' }}
                                 </option>
                             </select>
@@ -152,6 +152,7 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import { formatMoney } from '@/lib/money';
 
 const props = defineProps({
     event: Object,

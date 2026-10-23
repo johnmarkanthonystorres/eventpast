@@ -5,6 +5,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\ContentController;
+use App\Http\Controllers\TicketTypeController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -58,6 +59,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/events/{event}', [EventController::class, 'update'])->name('events.update');
     Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
     
+    // Tickets
+    Route::get('/events/{event}/tickets', [TicketTypeController::class, 'index'])->name('events.tickets.index');
+    Route::post('/events/{event}/tickets', [TicketTypeController::class, 'store'])->name('events.tickets.store');
+    Route::put('/events/{event}/tickets/{ticketType}', [TicketTypeController::class, 'update'])->name('events.tickets.update');
+    Route::delete('/events/{event}/tickets/{ticketType}', [TicketTypeController::class, 'destroy'])->name('events.tickets.destroy');
+
     // Check-in
     Route::get('/events/{event}/check-in', [CheckInController::class, 'index'])->name('events.checkin');
     Route::post('/check-in/scan', [CheckInController::class, 'scan'])->name('checkin.scan');
