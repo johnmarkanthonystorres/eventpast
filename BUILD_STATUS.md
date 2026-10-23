@@ -120,7 +120,7 @@ EventPast uses MailPit for local email testing:
 ## 🚀 What's Next (Optional Enhancements)
 
 ### High Priority
-- [ ] Scheduled reminders (7 days, 1 day, 2 hours before event)
+- [x] Scheduled reminders (7 days, 1 day, 2 hours before event) - see REMINDERS_COMPLETE.md
 - [ ] Check-in scanner UI with camera
 - [ ] Ticket type management (add/edit tickets per event)
 - [ ] Waitlist auto-promotion cron job
@@ -129,7 +129,6 @@ EventPast uses MailPit for local email testing:
 
 ### Medium Priority
 - [ ] Email templates for waitlist, promotion, reminders
-- [ ] Scheduled reminder jobs (7 days, 1 day, 2 hours)
 - [ ] Analytics dashboard with charts
 - [ ] CSV export for registrations
 - [ ] Bulk email to registrants
@@ -259,7 +258,7 @@ See `STRAPI_INTEGRATION.md` for complete setup guide.
 - **Strapi CMS integration: ✅ 90%** (Laravel integration complete, Strapi setup pending)
 - **Event management: ✅ 100%** (edit form added)
 
-**Overall MVP Status: 90% Complete** (up from 85%)
+**Overall MVP Status: ~92% Complete** (reminders added)
 
 ---
 

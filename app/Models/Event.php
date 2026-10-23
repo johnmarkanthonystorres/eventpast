@@ -97,6 +97,21 @@ class Event extends Model
         return $this->status === 'published' && !$this->is_full;
     }
 
+    /**
+     * The event start as an absolute instant.
+     *
+     * start_at is stored as the organiser's wall-clock time (the form sends
+     * no offset), so it must be read in the event's own timezone rather than
+     * the app timezone.
+     */
+    public function startsAtInstant(): \Illuminate\Support\Carbon
+    {
+        return \Illuminate\Support\Carbon::parse(
+            $this->start_at->format('Y-m-d H:i:s'),
+            $this->timezone ?: 'UTC'
+        );
+    }
+
     public function getRegistrationUrl(): string
     {
         return route('events.show', ['tenant' => $this->tenant->subdomain, 'slug' => $this->slug]);
