@@ -42,8 +42,12 @@ Route::prefix('content')->group(function () {
 Route::middleware(['tenant'])->group(function () {
     // Public pages live under /e/ because /events/{x} belongs to the organizer
     // dashboard; sharing one URI made Laravel drop the public page entirely.
-    Route::get('/e/{event:slug}', [RegistrationController::class, 'show'])->name('public.events.show');
-    Route::post('/e/{event:slug}/register', [RegistrationController::class, 'store'])->name('public.events.register');
+    // The organizer is part of the URL and event lookup is scoped to it, so
+    // two organizers can use the same slug without colliding.
+    Route::get('/e/{tenant:subdomain}/{event:slug}', [RegistrationController::class, 'show'])
+        ->scopeBindings()->name('public.events.show');
+    Route::post('/e/{tenant:subdomain}/{event:slug}/register', [RegistrationController::class, 'store'])
+        ->scopeBindings()->name('public.events.register');
     Route::get('/registrations/{registration:qr_token}/confirmation', [RegistrationController::class, 'confirmation'])->name('registrations.confirmation');
     Route::get('/registrations/{registration:qr_token}/qrcode', [RegistrationController::class, 'qrcode'])->name('registrations.qrcode');
 });

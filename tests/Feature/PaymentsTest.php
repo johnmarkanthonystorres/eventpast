@@ -81,7 +81,7 @@ class PaymentsTest extends TestCase
 
     private function register(TicketType $ticket, string $email = 'buyer@example.com', array $extra = [])
     {
-        return $this->post(route('public.events.register', $this->event), array_merge([
+        return $this->post(route('public.events.register', [$this->tenant, $this->event]), array_merge([
             'name' => 'Buyer', 'email' => $email, 'ticket_type_id' => $ticket->id,
         ], $extra));
     }
@@ -476,6 +476,6 @@ class PaymentsTest extends TestCase
             ->assertOk()
             ->assertDontSee('acct_123');
 
-        $this->get(route('public.events.show', $this->event))->assertDontSee('acct_123');
+        $this->get(route('public.events.show', [$this->tenant, $this->event]))->assertDontSee('acct_123');
     }
 }

@@ -96,7 +96,7 @@ class PaymentService
             'customer_email' => $registration->attendee->email,
             'expires_at' => now()->addMinutes(config('services.stripe.checkout_minutes'))->timestamp,
             'success_url' => route('registrations.confirmation', $registration).'?paid=1',
-            'cancel_url' => route('public.events.show', $registration->event),
+            'cancel_url' => route('public.events.show', [$tenant, $registration->event]),
             'line_items' => [[
                 'quantity' => 1,
                 'price_data' => [

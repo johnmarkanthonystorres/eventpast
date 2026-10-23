@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\Attendee;
 use App\Models\Registration;
+use App\Models\Tenant;
 use App\Models\Referral;
 use App\Notifications\RegistrationConfirmed;
 use App\Services\PaymentService;
@@ -16,7 +17,7 @@ use Inertia\Response;
 
 class RegistrationController extends Controller
 {
-    public function show(Request $request, Event $event): Response
+    public function show(Request $request, Tenant $tenant, Event $event): Response
     {
         $event->load('ticketTypes');
         
@@ -36,7 +37,7 @@ class RegistrationController extends Controller
         ]);
     }
 
-    public function store(Request $request, Event $event, PaymentService $payments)
+    public function store(Request $request, Tenant $tenant, Event $event, PaymentService $payments)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -148,7 +149,7 @@ class RegistrationController extends Controller
 
     public function confirmation(Registration $registration): Response
     {
-        $registration->load(['event', 'attendee', 'ticketType', 'referral']);
+        $registration->load(['event.tenant', 'attendee', 'ticketType', 'referral']);
         
         return Inertia::render('Registrations/Confirmation', [
             'registration' => $registration,

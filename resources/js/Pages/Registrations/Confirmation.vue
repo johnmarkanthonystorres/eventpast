@@ -213,7 +213,7 @@ const qrcodeUrl = computed(() => {
 
 const referralUrl = computed(() => {
     if (!props.registration.referral) return '';
-    return `${window.location.origin}/e/${props.registration.event.slug}?ref=${props.registration.referral.code}`;
+    return `${window.location.origin}/e/${props.registration.event.tenant.subdomain}/${props.registration.event.slug}?ref=${props.registration.referral.code}`;
 });
 
 const copyReferralLink = () => {

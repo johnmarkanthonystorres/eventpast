@@ -170,7 +170,7 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.post(route('public.events.register', props.event.slug));
+    form.post(route('public.events.register', [props.tenant.subdomain, props.event.slug]));
 };
 
 const formatDate = (dateString) => {

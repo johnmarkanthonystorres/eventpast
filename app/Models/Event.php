@@ -39,9 +39,19 @@ class Event extends Model
         parent::boot();
         
         static::creating(function ($event) {
-            if (empty($event->slug)) {
-                $event->slug = Str::slug($event->title);
+            $base = $event->slug ?: Str::slug($event->title);
+            $base = $base !== '' ? $base : 'event';
+
+            // (tenant_id, slug) is unique, so a repeated title would otherwise
+            // crash with a database error. Suffix -2, -3, ... instead.
+            $slug = $base;
+            $n = 2;
+            while (static::withTrashed()->where('tenant_id', $event->tenant_id)->where('slug', $slug)->exists()) {
+                $slug = "{$base}-{$n}";
+                $n++;
             }
+
+            $event->slug = $slug;
         });
     }
 
@@ -123,6 +133,6 @@ class Event extends Model
 
     public function getRegistrationUrl(): string
     {
-        return route('public.events.show', $this);
+        return route('public.events.show', [$this->tenant, $this]);
     }
 }
