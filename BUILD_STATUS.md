@@ -121,7 +121,7 @@ EventPast uses MailPit for local email testing:
 
 ### High Priority
 - [x] Scheduled reminders (7 days, 1 day, 2 hours before event) - see REMINDERS_COMPLETE.md
-- [ ] Check-in scanner UI with camera
+- [x] Check-in scanner UI with camera - see CHECKIN_SCANNER_COMPLETE.md
 - [ ] Ticket type management (add/edit tickets per event)
 - [ ] Waitlist auto-promotion cron job
 - [ ] Manual registration (for organizers)
@@ -277,7 +277,7 @@ See `STRAPI_INTEGRATION.md` for complete setup guide.
 
 1. No event edit form yet (can only create)
 2. No ticket type management UI (model ready)
-3. No check-in scanner UI (API ready)
+3. Scanner UI needs HTTPS (or localhost) for camera access
 4. Tenant middleware doesn't enforce subdomain routing yet
 5. No payment processing (Stripe integration pending)
 

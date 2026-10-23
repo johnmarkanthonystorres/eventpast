@@ -12,25 +12,39 @@ use Inertia\Response;
 
 class CheckInController extends Controller
 {
-    public function index(Event $event): Response
+    public function index(Request $request, Event $event): Response
     {
         $this->authorize('view', $event);
-        
-        $checkIns = $event->registrations()
-            ->with(['attendee', 'checkIn.scanner'])
-            ->where('status', 'confirmed')
-            ->latest()
-            ->paginate(50);
-        
+
+        // Scanning moves a registration from "confirmed" to "checked_in", so
+        // both statuses belong on the door list and in the totals.
+        $attending = ['confirmed', 'checked_in'];
+
+        $search = trim((string) $request->query('search', ''));
+
+        $registrations = $event->registrations()
+            ->with(['attendee', 'ticketType', 'checkIn.scanner'])
+            ->whereIn('status', $attending)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->whereHas('attendee', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('id')
+            ->paginate(50)
+            ->withQueryString();
+
         $stats = [
-            'total' => $event->registrations()->where('status', 'confirmed')->count(),
+            'total' => $event->registrations()->whereIn('status', $attending)->count(),
             'checked_in' => $event->registrations()->whereHas('checkIn')->count(),
         ];
-        
+
         return Inertia::render('Events/CheckIn', [
             'event' => $event,
-            'registrations' => $checkIns,
+            'registrations' => $registrations,
             'stats' => $stats,
+            'filters' => ['search' => $search],
         ]);
     }
 
@@ -53,7 +67,8 @@ class CheckInController extends Controller
         }
         
         // Verify user can check in for this event
-        if (!$request->user()->canManageEvent($registration->event)) {
+        // Door staff (any role in the event's tenant) may check people in.
+        if ($request->user()->tenant_id !== $registration->event->tenant_id) {
             return response()->json([
                 'success' => false,
                 'result' => 'unauthorized',

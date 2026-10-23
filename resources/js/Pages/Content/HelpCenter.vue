@@ -113,7 +113,6 @@
 import { Head } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import { route } from 'ziggy-js';
 
 const props = defineProps({
     articles: {
